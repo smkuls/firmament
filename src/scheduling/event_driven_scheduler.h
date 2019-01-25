@@ -107,6 +107,9 @@ class EventDrivenScheduler : public SchedulerInterface {
   FRIEND_TEST(SimpleSchedulerTest, FindRunnableTasksForJob);
   FRIEND_TEST(SimpleSchedulerTest, FindRunnableTasksForComplexJob);
   FRIEND_TEST(SimpleSchedulerTest, FindRunnableTasksForComplexJob2);
+  FRIEND_TEST(FulcrumSchedulerTest, FindRunnableTasksForJob);
+  FRIEND_TEST(FulcrumSchedulerTest, FindRunnableTasksForComplexJob);
+  FRIEND_TEST(FulcrumSchedulerTest, FindRunnableTasksForComplexJob2);
   void BindTaskToResource(TaskDescriptor* td_ptr, ResourceDescriptor* rd_ptr);
   void CleanStateForDeregisteredResource(
       ResourceTopologyNodeDescriptor* rtnd_ptr);

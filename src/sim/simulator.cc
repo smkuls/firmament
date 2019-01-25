@@ -103,6 +103,7 @@ namespace firmament {
 namespace sim {
 
 Simulator::Simulator() {
+  LOG(INFO) << "Simulator Constructor!";
   event_manager_ = new EventManager(&simulated_time_);
   bridge_ = new SimulatorBridge(event_manager_, &simulated_time_);
   scheduler_run_cnt_ = 0;

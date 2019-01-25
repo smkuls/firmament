@@ -32,6 +32,7 @@ set(SCHEDULING_SRC
   scheduling/flow/wharemap_cost_model.cc
   # XXX(malte): shouldn't always be included
   scheduling/simple/simple_scheduler.cc
+  scheduling/fulcrum_c/fulcrum_c_scheduler.cc
   )
 
 set(SCHEDULING_PROTOBUFS

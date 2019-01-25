@@ -222,6 +222,8 @@ void CoordinatorHTTPUI::HandleRootURI(const http::request_ptr& http_request,
   // Scheduler information
   if (FLAGS_scheduler == "simple") {
     dict.SetValue("SCHEDULER_NAME", "queue-based");
+  }else if (FLAGS_scheduler == "fulcrum_c") {
+    dict.SetValue("SCHEDULER_NAME", "centralized fulcrum");
   } else if (FLAGS_scheduler == "flow") {
     dict.SetValue("SCHEDULER_NAME", "flow network optimization");
     TemplateDictionary* flow_scheduler_detail_dict =

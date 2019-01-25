@@ -36,6 +36,7 @@
 #include "scheduling/scheduler_interface.h"
 #include "scheduling/scheduling_delta.pb.h"
 #include "scheduling/simple/simple_scheduler.h"
+#include "scheduling/fulcrum_c/fulcrum_c_scheduler.h"
 #include "storage/simple_object_store.h"
 
 using grpc::Server;
@@ -48,6 +49,7 @@ using firmament::scheduler::ObjectStoreInterface;
 using firmament::scheduler::SchedulerInterface;
 using firmament::scheduler::SchedulerStats;
 using firmament::scheduler::SimpleScheduler;
+using firmament::scheduler::FulcrumScheduler;
 using firmament::scheduler::TopologyManager;
 using firmament::platform::sim::SimulatedMessagingAdapter;
 
@@ -55,7 +57,7 @@ DEFINE_string(firmament_scheduler_service_address, "127.0.0.1",
               "The address of the scheduler service");
 DEFINE_string(firmament_scheduler_service_port, "9090",
               "The port of the scheduler service");
-DEFINE_string(service_scheduler, "flow", "Scheduler to use: flow | simple");
+DEFINE_string(service_scheduler, "flow", "Scheduler to use: flow | simple | fulcrum_c");
 
 namespace firmament {
 
@@ -84,6 +86,14 @@ class FirmamentSchedulerServiceImpl final :
     } else if (FLAGS_service_scheduler == "simple") {
       scheduler_ =
         new SimpleScheduler(job_map_, resource_map_,
+                            top_level_res_status->mutable_topology_node(),
+                            obj_store_, task_map_, knowledge_base_,
+                            topology_manager_, sim_messaging_adapter_, NULL,
+                            top_level_res_id_, "", &wall_time_,
+                            trace_generator_);
+    } else if (FLAGS_service_scheduler == "fulcrum_c") {
+      scheduler_ =
+        new FulcrumScheduler(job_map_, resource_map_,
                             top_level_res_status->mutable_topology_node(),
                             obj_store_, task_map_, knowledge_base_,
                             topology_manager_, sim_messaging_adapter_, NULL,

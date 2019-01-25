@@ -46,6 +46,7 @@
 #include "scheduling/flow/flow_scheduler.h"
 #include "scheduling/knowledge_base.h"
 #include "scheduling/simple/simple_scheduler.h"
+#include "scheduling/fulcrum_c/fulcrum_c_scheduler.h"
 #include "storage/simple_object_store.h"
 
 #ifdef ENABLE_HDFS
@@ -60,7 +61,7 @@ DEFINE_string(parent_uri, "", "The URI of the parent coordinator to register "
         "with.");
 DEFINE_bool(include_local_resources, true, "Add local machine's resources; "
             "will instantiate a resource-less coordinator if false.");
-DEFINE_string(scheduler, "simple", "Scheduler to use: one of 'simple' or "
+DEFINE_string(scheduler, "simple", "Scheduler to use: one of 'simple' or 'fulcrum_c' or "
               "'flow'.");
 #ifdef __HTTP_UI__
 DEFINE_bool(http_ui, true, "Enable HTTP interface");
@@ -111,6 +112,14 @@ Coordinator::Coordinator()
     // Simple random first-available scheduler
     LOG(INFO) << "Using simple random scheduler.";
     scheduler_ = new SimpleScheduler(
+        job_table_, associated_resources_, local_resource_topology_,
+        object_store_, task_table_, knowledge_base, topology_manager_,
+        m_adapter_, NULL, uuid_, FLAGS_listen_uri, time_manager_,
+        trace_generator_);
+  }else if (FLAGS_scheduler == "fulcrum_c") {
+    // Simple random first-available scheduler
+    LOG(INFO) << "Using fulcrum centralized scheduler.";
+    scheduler_ = new FulcrumScheduler(
         job_table_, associated_resources_, local_resource_topology_,
         object_store_, task_table_, knowledge_base, topology_manager_,
         m_adapter_, NULL, uuid_, FLAGS_listen_uri, time_manager_,

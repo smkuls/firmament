@@ -26,7 +26,7 @@ DEFINE_string(trace_path, "", "Path where the trace files are.");
 DEFINE_bool(aggregate_task_usage, false, "Generate aggregated task usage.");
 DEFINE_bool(jobs_runtime, false, "Generate task events with runtime.");
 DEFINE_bool(jobs_num_tasks, false, "Generate num tasks for each jobs.");
-DEFINE_int32(num_files_to_process, 500, "Number of files to process.");
+DEFINE_int32(num_files_to_process, 1, "Number of files to process.");
 DEFINE_bool(tasks_preemption_bins, false,
             "Compute bins of number of preempted tasks.");
 DEFINE_string(task_bins_output, "bins.out",

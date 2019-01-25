@@ -94,8 +94,12 @@ inline void InitFirmament(int argc, char *argv[]) {
   // logic is annoying!
   google::ParseCommandLineFlags(&argc, &argv, false);
 
+  LOG(INFO) << "Command line arguments parsed, argv[0]" << argv[0];
+
   // Set up glog for logging output
-  google::InitGoogleLogging(argv[0]);
+  //google::InitGoogleLogging(argv[0]);
+
+  LOG(INFO) << "Google Logging initialized";
 }
 
 // Helper function to convert a repeated protobuf field to a STL set.

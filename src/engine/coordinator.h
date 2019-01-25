@@ -69,6 +69,7 @@
 #endif
 #include "scheduling/flow/flow_scheduler.h"
 #include "scheduling/simple/simple_scheduler.h"
+#include "scheduling/fulcrum_c/fulcrum_c_scheduler.h"
 #include "storage/object_store_interface.h"
 #include "engine/executors/topology_manager.h"
 
@@ -84,6 +85,7 @@ using platform_unix::ProcFSMachine;
 using scheduler::FlowScheduler;
 using scheduler::SchedulerInterface;
 using scheduler::SimpleScheduler;
+using scheduler::FulcrumScheduler;
 using store::ObjectStoreInterface;
 
 #ifdef __HTTP_UI__

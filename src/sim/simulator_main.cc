@@ -25,8 +25,10 @@ using namespace firmament;  // NOLINT
 
 int main(int argc, char *argv[]) {
   VLOG(1) << "Calling common::InitFirmament";
+  LOG(INFO) << "Initializing Firmament";
   common::InitFirmament(argc, argv);
   //HeapProfilerStart("ts");
+  LOG(INFO) << "Firmamemnt initialized, instantiating simulator";
   sim::Simulator simulator;
   //HeapProfilerStop();
   simulator.Run();

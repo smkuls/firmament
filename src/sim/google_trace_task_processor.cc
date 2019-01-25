@@ -30,6 +30,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include <iostream>
 #include <algorithm>
 #include <cstdio>
 #include <limits>
@@ -564,10 +565,10 @@ namespace sim {
     FILE* events_file = NULL;
     for (int32_t file_num = 0; file_num < FLAGS_num_files_to_process;
          file_num++) {
-      LOG(INFO) << "Reading job_events file " << file_num;
       string file_name;
       spf(&file_name, "%s/job_events/part-%05d-of-00500.csv",
           trace_path_.c_str(), file_num);
+      LOG(INFO) << "Reading job_events file number: " << file_num << " : " << file_name;
       if ((events_file = fopen(file_name.c_str(), "r")) == NULL) {
         LOG(FATAL) << "Failed to open trace for reading of job events.";
       }

@@ -42,7 +42,7 @@ DEFINE_double(events_fraction, 1.0, "Fraction of events to retain.");
 DEFINE_double(machine_events_fraction, 1.0,
               "Fraction of machine events to retain. NOTE: the minimum "
               "of events_fraction and machine_events_fraction will be used");
-DEFINE_int32(num_files_to_process, 500, "Number of files to process.");
+DEFINE_int32(num_files_to_process, 1, "Number of files to process.");
 DEFINE_string(trace_path, "", "Path where the trace files are.");
 DEFINE_uint64(sim_machine_max_cores, 12,
               "Maximum number of cores the simulated machines have");

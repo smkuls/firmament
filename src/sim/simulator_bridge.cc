@@ -34,6 +34,7 @@
 #include "misc/utils.h"
 #include "scheduling/flow/flow_scheduler.h"
 #include "scheduling/simple/simple_scheduler.h"
+#include "scheduling/fulcrum_c/fulcrum_c_scheduler.h"
 #include "sim/dfs/simulated_data_layer_manager.h"
 #include "sim/interference/no_task_interference.h"
 #include "sim/interference/quincy_task_interference.h"
@@ -83,6 +84,16 @@ SimulatorBridge::SimulatorBridge(EventManager* event_manager,
     new platform::sim::SimulatedMessagingAdapter<BaseMessage>();
   if (FLAGS_scheduler == "flow") {
     scheduler_ = new scheduler::FlowScheduler(
+        job_map_, resource_map_, &rtn_root_,
+        shared_ptr<store::ObjectStoreInterface>(
+            new store::SimpleObjectStore(root_uuid)),
+        task_map_, knowledge_base_,
+        shared_ptr<machine::topology::TopologyManager>(
+            new machine::topology::TopologyManager),
+        messaging_adapter_, this, root_uuid, "http://localhost",
+        simulated_time_, trace_generator_);
+  } else if (FLAGS_scheduler == "fulcrum_c") {
+    scheduler_ = new scheduler::FulcrumScheduler(
         job_map_, resource_map_, &rtn_root_,
         shared_ptr<store::ObjectStoreInterface>(
             new store::SimpleObjectStore(root_uuid)),

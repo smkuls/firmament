@@ -28,14 +28,14 @@ DEFINE_uint64(synthetic_machine_failure_rate, 1,
               "Number of machine failures per hour");
 DEFINE_uint64(synthetic_machine_failure_duration, 60,
               "Duration (in seconds) of a machine failure");
-DEFINE_uint64(synthetic_num_jobs, 100,
+DEFINE_uint64(synthetic_num_jobs, 1000,
               "Total number of synthetic jobs to generate");
-DEFINE_uint64(synthetic_num_machines, 10, "Number of machines to simulate");
-DEFINE_uint64(synthetic_job_interarrival_time, 1000000,
+DEFINE_uint64(synthetic_num_machines, 10000, "Number of machines to simulate");
+DEFINE_uint64(synthetic_job_interarrival_time, 4000,
               "Number of microseconds in between job arrivals");
-DEFINE_uint64(synthetic_tasks_per_job, 2,
+DEFINE_uint64(synthetic_tasks_per_job, 200,
               "Number of tasks per job");
-DEFINE_uint64(synthetic_task_duration, 10 * firmament::SECONDS_TO_MICROSECONDS,
+DEFINE_uint64(synthetic_task_duration, firmament::SECONDS_TO_MICROSECONDS/10,
               "Duration (in microseconds) of a task");
 DEFINE_double(prepopulated_cluster_fraction, 0,
               "Fraction of the cluster that is in use at the start of the "
