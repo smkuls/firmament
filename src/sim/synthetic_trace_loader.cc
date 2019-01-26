@@ -23,6 +23,8 @@
 #include "base/units.h"
 #include "misc/pb_utils.h"
 #include "sim/trace_utils.h"
+#include <cstdlib>
+#include <ctime>
 
 DEFINE_uint64(synthetic_machine_failure_rate, 1,
               "Number of machine failures per hour");
@@ -35,8 +37,8 @@ DEFINE_uint64(synthetic_job_interarrival_time, 40,
               "Number of microseconds in between job arrivals");
 DEFINE_uint64(synthetic_tasks_per_job, 2,
               "Number of tasks per job");
-DEFINE_uint64(synthetic_task_duration, firmament::SECONDS_TO_MICROSECONDS/10000,
-              "Duration (in microseconds) of a task");
+//DEFINE_uint64(synthetic_task_duration, firmament::SECONDS_TO_MICROSECONDS/10,
+//              "Duration (in microseconds) of a task");
 DEFINE_double(prepopulated_cluster_fraction, 0,
               "Fraction of the cluster that is in use at the start of the "
               "simulation");
@@ -241,8 +243,15 @@ void SyntheticTraceLoader::LoadTaskUtilizationStats(
   }
 }
 
+uint64_t get_synthetic_task_duration() {
+  return rand() % firmament::SECONDS_TO_MICROSECONDS/10;
+}
+
 void SyntheticTraceLoader::LoadTasksRunningTime(
     unordered_map<TaskID_t, uint64_t>* task_runtime) {
+  // Set the seed
+  srand(time(NULL));
+
   uint64_t usec_between_jobs = FLAGS_synthetic_job_interarrival_time;
   uint64_t num_tasks_at_beginning = NumTasksAtBeginning();
   if (num_tasks_at_beginning > 0) {
@@ -273,9 +282,11 @@ void SyntheticTraceLoader::LoadTasksRunningTime(
     for (uint64_t task_index = 1; task_index <= FLAGS_synthetic_tasks_per_job;
          ++task_index) {
       task_identifier.task_index = task_index;
+      uint64_t task_duration = get_synthetic_task_duration();
+      // LOG(INFO) << "########" << task_duration << " " << task_duration / FLAGS_trace_speed_up;
       CHECK(InsertIfNotPresent(
           task_runtime, GenerateTaskIDFromTraceIdentifier(task_identifier),
-          FLAGS_synthetic_task_duration / FLAGS_trace_speed_up));
+          task_duration / FLAGS_trace_speed_up));
     }
   }
 }
