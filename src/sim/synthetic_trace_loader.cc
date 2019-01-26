@@ -37,8 +37,8 @@ DEFINE_uint64(synthetic_job_interarrival_time, 40,
               "Number of microseconds in between job arrivals");
 DEFINE_uint64(synthetic_tasks_per_job, 2,
               "Number of tasks per job");
-//DEFINE_uint64(synthetic_task_duration, firmament::SECONDS_TO_MICROSECONDS/10,
-//              "Duration (in microseconds) of a task");
+DEFINE_uint64(synthetic_task_duration_mean, firmament::SECONDS_TO_MICROSECONDS/10,
+              "Duration (in microseconds) of a task");
 DEFINE_double(prepopulated_cluster_fraction, 0,
               "Fraction of the cluster that is in use at the start of the "
               "simulation");
@@ -74,6 +74,8 @@ SyntheticTraceLoader::SyntheticTraceLoader(EventManager* event_manager)
       machine_tmpl,
       boost::bind(&SyntheticTraceLoader::GetNumberOfSlots,
                   this, _1, &num_slots_per_machine_));
+  
+  exp_task_duration_dist = std::exponential_distribution<double>(1.0/FLAGS_synthetic_task_duration_mean);
 }
 
 void SyntheticTraceLoader::GetNumberOfSlots(
@@ -243,8 +245,9 @@ void SyntheticTraceLoader::LoadTaskUtilizationStats(
   }
 }
 
-uint64_t get_synthetic_task_duration() {
-  return rand() % firmament::SECONDS_TO_MICROSECONDS/10;
+uint64_t SyntheticTraceLoader::GetSyntheticTaskDuration() {
+  return exp_task_duration_dist(generator);
+  //return rand() % firmament::SECONDS_TO_MICROSECONDS/10;
 }
 
 void SyntheticTraceLoader::LoadTasksRunningTime(
@@ -279,10 +282,10 @@ void SyntheticTraceLoader::LoadTasksRunningTime(
        timestamp += usec_between_jobs, ++job_id) {
     TraceTaskIdentifier task_identifier;
     task_identifier.job_id = job_id;
+    uint64_t task_duration = GetSyntheticTaskDuration();
     for (uint64_t task_index = 1; task_index <= FLAGS_synthetic_tasks_per_job;
          ++task_index) {
       task_identifier.task_index = task_index;
-      uint64_t task_duration = get_synthetic_task_duration();
       // LOG(INFO) << "########" << task_duration << " " << task_duration / FLAGS_trace_speed_up;
       CHECK(InsertIfNotPresent(
           task_runtime, GenerateTaskIDFromTraceIdentifier(task_identifier),

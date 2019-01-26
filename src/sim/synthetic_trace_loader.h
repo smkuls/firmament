@@ -25,6 +25,7 @@
 
 #include "sim/event_manager.h"
 #include "sim/trace_loader.h"
+#include <random>
 
 namespace firmament {
 namespace sim {
@@ -44,6 +45,9 @@ class SyntheticTraceLoader : public TraceLoader {
  private:
   void GetNumberOfSlots(const ResourceTopologyNodeDescriptor& rtnd,
                         uint64_t* num_slots);
+  std::default_random_engine generator;
+  std::exponential_distribution<double> exp_task_duration_dist;
+  uint64_t GetSyntheticTaskDuration();
   uint64_t NumTasksAtBeginning();
 
   uint64_t last_generated_job_id_;
