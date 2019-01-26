@@ -81,8 +81,11 @@ bool FulcrumScheduler::FindResourceForTask(const TaskDescriptor& task_desc,
          numpus++;
        }
   }
-  LOG(INFO) << "FindResourceForTask: #resources: " << resource_map_->size()
-            << ", #PUs: "<<numpus;
+
+  if(task_desc.uid()%10000 == 0){
+      LOG(INFO) << "FindResourceForTask: #resources: " << resource_map_->size()
+               << ", #PUs: "<<numpus;
+  }
  
   /*
   ResourceVector rvec = task_desc.resource_request();
@@ -163,11 +166,14 @@ void FulcrumScheduler::HandleTaskCompletion(TaskDescriptor* td_ptr,
   // TODO(ionel): This assumes no PU sharing.
   rd_ptr->clear_current_running_tasks();
   EventDrivenScheduler::HandleTaskCompletion(td_ptr, report);
-  LOG(INFO) << "Job Id: " << td_ptr->job_id()
-	<< "Task completed " << td_ptr->uid()
-	<< " StartTime: " << td_ptr->start_time()
-	<< " SubmitTime: " << td_ptr->submit_time()
-	<< " FinishTime: " << td_ptr->finish_time();
+
+  if(td_ptr->trace_job_id()%100 == 0 && td_ptr->uid()%100==3){
+     LOG(INFO) << "Job Id: " << td_ptr->job_id()
+        << "Task completed " << td_ptr->uid()
+        << " StartTime: " << td_ptr->start_time()
+        << " SubmitTime: " << td_ptr->submit_time()
+        << " FinishTime: " << td_ptr->finish_time();
+  }
 }
 
 void FulcrumScheduler::HandleTaskEviction(TaskDescriptor* td_ptr,
@@ -249,10 +255,13 @@ uint64_t FulcrumScheduler::ScheduleJob(JobDescriptor* jd_ptr,
   boost::timer::cpu_timer scheduler_timer;
   // Get the set of runnable tasks for this job
   unordered_set<TaskID_t> runnable_tasks = ComputeRunnableTasksForJob(jd_ptr);
+
+  /*
   if (runnable_tasks.size() > 0) {
     LOG(INFO) << "Scheduling job " << jd_ptr->uuid() << ", which has "
            << runnable_tasks.size() << " runnable tasks.";
   }
+  */
   JobID_t job_id = JobIDFromString(jd_ptr->uuid());
   for (unordered_set<TaskID_t>::const_iterator task_iter =
        runnable_tasks.begin();

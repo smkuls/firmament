@@ -26,16 +26,16 @@
 #include <cstdlib>
 #include <ctime>
 
-DEFINE_uint64(synthetic_machine_failure_rate, 1,
+DEFINE_uint64(synthetic_machine_failure_rate, 0,
               "Number of machine failures per hour");
 DEFINE_uint64(synthetic_machine_failure_duration, 60,
               "Duration (in seconds) of a machine failure");
-DEFINE_uint64(synthetic_num_jobs, 10,
+DEFINE_uint64(synthetic_num_jobs, 1000,
               "Total number of synthetic jobs to generate");
-DEFINE_uint64(synthetic_num_machines, 10, "Number of machines to simulate");
-DEFINE_uint64(synthetic_job_interarrival_time, 40,
+DEFINE_uint64(synthetic_num_machines, 500, "Number of machines to simulate");
+DEFINE_uint64(synthetic_job_interarrival_time, 2000,
               "Number of microseconds in between job arrivals");
-DEFINE_uint64(synthetic_tasks_per_job, 2,
+DEFINE_uint64(synthetic_tasks_per_job, 100,
               "Number of tasks per job");
 DEFINE_uint64(synthetic_task_duration_mean, firmament::SECONDS_TO_MICROSECONDS/10,
               "Duration (in microseconds) of a task");

@@ -50,7 +50,7 @@ DEFINE_bool(only_read_assignment_changes, false, "Read only changes in task"
 DEFINE_string(flowlessly_binary,
               "build/third_party/flowlessly/src/flowlessly-build/flow_scheduler",
               "Path to the flowlessly binary.");
-DEFINE_string(flowlessly_algorithm, "fast_cost_scaling",
+DEFINE_string(flowlessly_algorithm, "cycle_cancelling",
               "Algorithm to be used by flowlessly. Options: cycle_cancelling |"
               "cost_scaling | fast_cost_scaling | relax");
 DEFINE_string(flowlessly_initial_runs_algorithm, "",
