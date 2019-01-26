@@ -75,6 +75,8 @@ SimulatorBridge::SimulatorBridge(EventManager* event_manager,
   ResourceDescriptor* rd_ptr = rtn_root_.mutable_resource_desc();
   rd_ptr->set_uuid(to_string(root_uuid));
   rd_ptr->set_type(ResourceDescriptor::RESOURCE_COORDINATOR);
+
+  LOG(INFO) << "Adding Resource, current #resources: "<< resource_map_->size();
   CHECK(InsertIfNotPresent(
       resource_map_.get(), root_uuid,
       new ResourceStatus(rd_ptr, &rtn_root_,
@@ -128,6 +130,7 @@ SimulatorBridge::SimulatorBridge(EventManager* event_manager,
   } else {
     task_interference_model_ = new NoTaskInterference(&task_runtime_);
   }
+  LOG(INFO) << "Added Resource, current #resources: "<< resource_map_->size();
 }
 
 SimulatorBridge::~SimulatorBridge() {
@@ -152,11 +155,27 @@ SimulatorBridge::~SimulatorBridge() {
   }
 }
 
+
+void SimulatorBridge::LogMachineTemplate(ResourceTopologyNodeDescriptor* machine, int level){
+   ResourceDescriptor rd_ptr = machine->resource_desc();
+   //LOG(INFO) << "LogMachineTemplate " << rd_ptr.state() << " : "
+   //          << rd_ptr.type() << " : " << rd_ptr.num_slots_below()
+   //          << " Level: " << level;
+   for (RepeatedPtrField<ResourceTopologyNodeDescriptor>::pointer_iterator
+         rtnd_iter = machine->mutable_children()->pointer_begin();
+         rtnd_iter != machine->mutable_children()->pointer_end();
+         ++rtnd_iter) {
+      LogMachineTemplate(*rtnd_iter, level+1);
+   }
+}
+
 ResourceDescriptor* SimulatorBridge::AddMachine(
     uint64_t machine_id) {
+  //LOG(INFO) << "SimulatorBridge::AddMachine";
   // Create a new machine topology descriptor.
   ResourceTopologyNodeDescriptor* new_machine = rtn_root_.add_children();
   new_machine->CopyFrom(machine_tmpl_);
+  //LogMachineTemplate(new_machine, 0);
   const string& root_uuid = rtn_root_.resource_desc().uuid();
   string hostname = "firmament_simulation_machine_" +
     lexical_cast<string>(machine_id);
@@ -639,6 +658,7 @@ void SimulatorBridge::SetupMachine(
       ResourceIDFromString(rd->uuid()),
       new ResourceStatus(rd, rtnd, "endpoint_uri",
                          simulated_time_->GetCurrentTimestamp())));
+  //LOG(INFO) << "SetupMachine: Added Resource, current #resources: "<< resource_map_->size();
   if (rd->type() == ResourceDescriptor::RESOURCE_PU) {
     string* new_machine_res_id = FindOrNull(uuid_conversion_map_,
                                             old_machine_res_id);

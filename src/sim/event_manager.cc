@@ -104,7 +104,7 @@ uint64_t EventManager::GetTimeOfNextSchedulerRun(
     // We're in online mode.
     // Adjust for time warp factor.
     cur_scheduler_runtime *= FLAGS_online_factor;
-    LOG(INFO) << "Scheduler Runtime "<< cur_scheduler_runtime << " : "<< FLAGS_online_factor;
+    //LOG(INFO) << "Scheduler Runtime "<< cur_scheduler_runtime << " : "<< FLAGS_online_factor;
     cur_run_scheduler_at += cur_scheduler_runtime;
     if (cur_scheduler_runtime == 0) {
       // The scheduler didn't have anything to do.

@@ -72,6 +72,31 @@ bool FulcrumScheduler::FindResourceForTask(const TaskDescriptor& task_desc,
   // selection (i.e. the essence of scheduling). We will simply traverse the
   // resource map in some order, and grab the first resource available.
   VLOG(2) << "Trying to place task " << task_desc.uid() << "...";
+
+  int numpus = 0;
+  for (ResourceMap_t::iterator res_iter = resource_map_->begin();
+       res_iter != resource_map_->end();
+       ++res_iter) {
+       if (res_iter->second->descriptor().type() ==
+           ResourceDescriptor::RESOURCE_PU) {
+         numpus++;
+       }
+  }
+  LOG(INFO) << "FindResourceForTask: #resources: " << resource_map_->size()
+            << ", #PUs: "<<numpus;
+ 
+  /*
+  ResourceVector rvec = task_desc.resource_request();
+  LOG (INFO) << "Task Requirements- "
+             << ", CPU: " << rvec.cpu_cores()
+             << ", ram_bw: " << rvec.ram_bw()
+             << ", ram_cap: " << rvec.ram_cap()
+             << ", disk_bw: " << rvec.disk_bw()
+             << ", disk_cap: " << rvec.disk_cap()
+             << ", net_tx_bw: " << rvec.net_tx_bw()
+             << ", net_rx_bw: " << rvec.net_rx_bw();
+  */
+
   // Find the first idle resource in the resource map
   for (ResourceMap_t::iterator res_iter = resource_map_->begin();
        res_iter != resource_map_->end();
@@ -79,6 +104,13 @@ bool FulcrumScheduler::FindResourceForTask(const TaskDescriptor& task_desc,
     VLOG(3) << "Considering resource " << res_iter->first
             << ", which is in state "
             << res_iter->second->descriptor().state();
+    /*
+    LOG(INFO) << "Considering resource " << res_iter->first
+            << ", which is in state "
+            << res_iter->second->descriptor().state()
+            <<", of type "
+            << res_iter->second->descriptor().type();
+    */
     if (res_iter->second->descriptor().state() ==
         ResourceDescriptor::RESOURCE_IDLE) {
       *best_resource = res_iter->first;
@@ -97,6 +129,7 @@ bool FulcrumScheduler::FindRandomResourceForTask(const TaskDescriptor& task_desc
   // selection (i.e. the essence of scheduling). We will simply traverse the
   // resource map in some order, and grab the first resource available.
   VLOG(2) << "Trying to place task " << task_desc.uid() << "...";
+  LOG(INFO) << "FindRandomResourceForTask: #resources: " << resource_map_->size();
   vector<ResourceStatus*> resources;
   // Find the first idle resource in the resource map
   for (ResourceMap_t::iterator res_iter = resource_map_->begin();

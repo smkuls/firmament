@@ -66,6 +66,7 @@ class FirmamentSchedulerServiceImpl final :
 
   public:
   FirmamentSchedulerServiceImpl() {
+    LOG(INFO) << "FirmamentSchedulerServiceImpl invoked ";
     job_map_.reset(new JobMap_t);
     task_map_.reset(new TaskMap_t);
     resource_map_.reset(new ResourceMap_t);
@@ -76,6 +77,7 @@ class FirmamentSchedulerServiceImpl final :
       ResourceIDFromString(top_level_res_status->descriptor().uuid());
     sim_messaging_adapter_ = new SimulatedMessagingAdapter<BaseMessage>();
     trace_generator_ = new TraceGenerator(&wall_time_);
+    LOG(INFO) << "Initial Resource map size: "<<resource_map_->size();
     if (FLAGS_service_scheduler == "flow") {
       scheduler_ =
         new FlowScheduler(job_map_, resource_map_,
@@ -324,7 +326,9 @@ class FirmamentSchedulerServiceImpl final :
     ResourceID_t res_id = ResourceIDFromString(rd_ptr->uuid());
     ResourceStatus* rs_ptr =
       new ResourceStatus(rd_ptr, rtnd_ptr, rd_ptr->friendly_name(), 0);
+    LOG(INFO) << "Adding Resource, current #resources: "<< resource_map_->size();
     CHECK(InsertIfNotPresent(resource_map_.get(), res_id, rs_ptr));
+    LOG(INFO) << "Added Resource, current #resources: "<< resource_map_->size();
   }
 
   Status NodeAdded(ServerContext* context,
@@ -476,7 +480,10 @@ class FirmamentSchedulerServiceImpl final :
     ResourceStatus* rs_ptr =
       new ResourceStatus(rd_ptr, rtnd_ptr, "root_resource", 0);
     // Insert into resource map
+
+    LOG(INFO) << "Creating Top Level Resource, current #resources: "<< resource_map_->size();
     CHECK(InsertIfNotPresent(resource_map_.get(), res_id, rs_ptr));
+    LOG(INFO) << "Created Top Level Resource, current #resources: "<< resource_map_->size();
     return rs_ptr;
   }
 

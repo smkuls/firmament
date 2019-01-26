@@ -71,6 +71,11 @@ void DFSTraverseResourceProtobufTreeReturnRTND(
   VLOG(3) << "DFSTraversal of resource topology, reached "
           << pb.resource_desc().uuid()
           << ", invoking callback [" << callback << "]";
+
+  //LOG(INFO) << "DFSTraversal of resource topology, reached "
+  //        << pb.resource_desc().uuid()
+  //        << ", invoking callback [" << callback << "]";
+
   callback(pb);
   for (RepeatedPtrField<ResourceTopologyNodeDescriptor>::const_iterator
        rtnd_iter = pb.children().begin();

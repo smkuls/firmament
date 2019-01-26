@@ -53,6 +53,9 @@ class SimulatorBridge : public scheduler::SchedulingEventNotifierInterface {
                   SimulatedWallTime* simulated_time);
   virtual ~SimulatorBridge();
 
+
+  void LogMachineTemplate(ResourceTopologyNodeDescriptor* machine, int level);
+
   /**
    * Add new machine to the topology. The method updates simulator's mapping
    * state.
