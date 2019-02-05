@@ -87,8 +87,8 @@ bool FulcrumScheduler::FindResourceForTask(const TaskDescriptor& task_desc,
                << ", #PUs: "<<numpus;
   }
  
-  /*
   ResourceVector rvec = task_desc.resource_request();
+  /*
   LOG (INFO) << "Task Requirements- "
              << ", CPU: " << rvec.cpu_cores()
              << ", ram_bw: " << rvec.ram_bw()

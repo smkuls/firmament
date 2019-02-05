@@ -66,7 +66,27 @@ class SimulatedDataLayerManager : public DataLayerManagerInterface {
     return dfs_->GetRackForMachine(machine_res_id);
   }
 
+  // Compute the estimated data transfer time for a task on a machine
+  uint64_t GetEstimatedTransferTimeUS(
+                       TaskDescriptor* td_ptr,
+                       ResourceID_t machine_res_id);
+
+
  private:
+  // Compute data residing remotely on rack and remote machines
+  uint64_t ComputeDataStatsForMachine(
+                       TaskDescriptor* td_ptr,
+                       ResourceID_t machine_res_id,
+                       uint64_t* data_on_rack,
+                       uint64_t* data_on_machine);
+
+  // Get closest replica blocks of a file to a machine
+  void GetClosestReplicas(string &file_location,
+                       ResourceID_t machine_res_id,
+                       unordered_map<uint64_t, DataLocation>* 
+                              closest_block_replicas);
+
+
   GoogleBlockDistribution* input_block_dist_;
   GoogleRuntimeDistribution* runtime_dist_;
   SimulatedDFS* dfs_;

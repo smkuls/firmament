@@ -29,25 +29,31 @@ endif (${ENABLE_CS2})
 if (${ENABLE_PRIVATE_FLOWLESSLY})
   ExternalProject_Add(
       flowlessly
-      GIT_REPOSITORY git@github.com:ICGog/FlowlesslyPrivate.git
+      #file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/flowlessly DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/third_party/flowlessly)
+      SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/flowlessly
+      #GIT_REPOSITORY git@github.com:ICGog/FlowlesslyPrivate.git
       TIMEOUT 10
       PREFIX ${CMAKE_CURRENT_BINARY_DIR}/third_party/flowlessly
       # no install required, we link the library from the build tree
       INSTALL_COMMAND ""
       # Wrap download, configure and build steps in a script to log output
-      LOG_DOWNLOAD ON
-      LOG_BUILD ON)
+      #LOG_DOWNLOAD ON
+      #LOG_BUILD ON
+      )
 else (${ENABLE_PRIVATE_FLOWLESSLY})
   ExternalProject_Add(
       flowlessly
-      GIT_REPOSITORY https://github.com/ICGog/Flowlessly.git
+      #file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/flowlessly DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/third_party/flowlessly)
+      SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/flowlessly
+      #GIT_REPOSITORY https://github.com/ICGog/Flowlessly.git
       TIMEOUT 10
       PREFIX ${CMAKE_CURRENT_BINARY_DIR}/third_party/flowlessly
       # no install required, we link the library from the build tree
       INSTALL_COMMAND ""
       # Wrap download, configure and build steps in a script to log output
-      LOG_DOWNLOAD ON
-      LOG_BUILD ON)
+      #LOG_DOWNLOAD ON
+      #LOG_BUILD ON
+      )
 endif (${ENABLE_PRIVATE_FLOWLESSLY})
 
 ###############################################################################

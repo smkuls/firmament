@@ -55,13 +55,13 @@ def string(x):
 label_fontsize=20
 plt.xlabel('Percentiles', fontsize=label_fontsize)
 #plt.xlim(xmin=min(k)-0.5, xmax=max(k)+0.5)
-#ax1.set_ylim(ymin=50)
+ax1.set_ylim(ymin=1.0/(2**7), ymax=1.0/(2**0))
 ax1.set_ylabel('Job Response Time', fontsize=label_fontsize)
 
 
 ticklabelcolor = 'grey'
-yticks = np.array([10, 20, 30, 40, 50, 60, 70, 80, 90, 100])
-#ax2.yaxis.set_ticks(yticks)
+yticks = np.array([1.0/(2**6), 1.0/(2**4), 1.0/(2**2)])
+ax1.yaxis.set_ticks(yticks)
 #yticklabels = np.array([string(y) for y in yticks])
 #ax2.set_yticklabels(yticklabels, color=ticklabelcolor)
 #ax2.set_ylim(ymin=20, ymax=180)
@@ -81,5 +81,6 @@ plt.tick_params(labelsize=label_fontsize)
 
  
 plt.tight_layout()
-plt.savefig("job_response_dist_synthetic_trace.pdf")
+plt.savefig("job_response_dist_synthetic_trace_flow2.pdf")
+#plt.savefig("job_response_dist_synthetic_trace_flow.pdf")
 #plt.show()

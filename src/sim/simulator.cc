@@ -130,6 +130,7 @@ void Simulator::ReplaySimulation() {
   uint64_t num_scheduling_rounds = 0;
   bool loaded_initial_machines = false;
 
+  LOG(INFO) << "Simulator::ReplaySimulation: starting loop";
   while (!event_manager_->HasSimulationCompleted(num_scheduling_rounds)) {
     // Make sure to process all the initial machine additions before we add
     // tasks.
@@ -146,12 +147,14 @@ void Simulator::ReplaySimulation() {
       trace_loader->LoadTaskEvents(run_scheduler_at + FLAGS_max_solver_runtime,
                                    bridge_->job_num_tasks());
     // Add the machine heartbeat events up to the next scheduler run.
+    //LOG(INFO) << "Simulator::ReplaySimulation: Adding heartbeat events";
     for (; run_scheduler_at >= current_heartbeat_time;
          current_heartbeat_time += FLAGS_heartbeat_interval) {
       EventDescriptor event_desc;
       event_desc.set_type(EventDescriptor::MACHINE_HEARTBEAT);
       event_manager_->AddEvent(current_heartbeat_time, event_desc);
     }
+    //LOG(INFO) << "Simulator::ReplaySimulation: About to call ProcessSimulatorEvents";
     if (run_scheduler_at <= FLAGS_runtime / FLAGS_trace_speed_up) {
       bridge_->ProcessSimulatorEvents(run_scheduler_at);
       // Current timestamp is at the last event <= run_scheduler_at. We want
@@ -166,6 +169,7 @@ void Simulator::ReplaySimulation() {
     } else {
       bridge_->ProcessSimulatorEvents(FLAGS_runtime / FLAGS_trace_speed_up);
     }
+    //LOG(INFO) << "Simulator::ReplaySimulation: Finished ProcessSimulatorEvents";
     if (!loaded_events && FLAGS_exit_simulation_after_last_task_event) {
       // The simulator has finished loading all the task events.
       break;

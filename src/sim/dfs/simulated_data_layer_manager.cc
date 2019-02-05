@@ -40,10 +40,20 @@ DEFINE_uint64(simulated_block_size, 536870912,
 DEFINE_uint64(simulated_dfs_blocks_per_machine, 12288,
               "Number of blocks each machine stores. "
               "Defaults to 12288, i.e. 6 TB for 512MB blocks.");
-DEFINE_uint64(simulated_dfs_replication_factor, 3,
+DEFINE_uint64(simulated_dfs_replication_factor, 4,
               "The number of times each block should be replicated.");
 DEFINE_string(simulated_dfs_type, "bounded", "The type of DFS to simulated. "
               "Options: uniform | bounded | hdfs | skewed");
+
+DEFINE_uint64(simulated_remote_transfer_time, 250,
+              "Time in microseconds to transfer 1 Mb data"
+              "to a remote rack");
+
+//100 ~ 10 Gbps
+DEFINE_uint64(simulated_rack_transfer_time, 100,
+              "Time in microseconds to transfer 1 Mb data"
+              "to another machine in the same rack");
+
 
 
 namespace firmament {
@@ -51,6 +61,7 @@ namespace sim {
 
 SimulatedDataLayerManager::SimulatedDataLayerManager(
     TraceGenerator* trace_generator) {
+  LOG(INFO) << "Initializing SimulatedDataLayerManager";
   input_block_dist_ = new GoogleBlockDistribution();
   runtime_dist_ =
     new GoogleRuntimeDistribution(FLAGS_simulated_quincy_runtime_factor,
@@ -125,6 +136,95 @@ uint64_t SimulatedDataLayerManager::AddFilesForTask(
 void SimulatedDataLayerManager::RemoveFilesForTask(const TaskDescriptor& td) {
   dfs_->RemoveBlocksForTask(td.uid());
 }
+
+
+void SimulatedDataLayerManager::GetClosestReplicas(string &file_location, 
+					   ResourceID_t machine_res_id,	
+						unordered_map<uint64_t, DataLocation>* closest_block_replicas){
+	 CHECK_NOTNULL(closest_block_replicas);
+	 EquivClass_t rack_ec = GetRackForMachine(machine_res_id);
+	 list<DataLocation> locations;
+    GetFileLocations(file_location, &locations);
+    for (auto& location : locations) {
+      InsertIfNotPresent(closest_block_replicas,
+                               location.block_id_, location);
+      DataLocation closest_loc =
+                closest_block_replicas->find(location.block_id_)->second;
+      if(machine_res_id != closest_loc.machine_res_id_){
+         if (machine_res_id == location.machine_res_id_) {
+             InsertOrUpdate(closest_block_replicas,
+                                  location.block_id_, location);
+         }
+         else if(rack_ec == location.rack_id_ &&
+                 rack_ec != closest_loc.rack_id_){
+             InsertOrUpdate(closest_block_replicas,
+                                  location.block_id_, location);
+         }
+      }
+    }
+}
+
+
+uint64_t SimulatedDataLayerManager::ComputeDataStatsForMachine(
+    TaskDescriptor* td_ptr, ResourceID_t machine_res_id,
+    uint64_t* data_on_rack, uint64_t* data_on_machine) {
+  EquivClass_t rack_ec = GetRackForMachine(machine_res_id);
+  uint64_t input_size = 0;
+  for (RepeatedPtrField<ReferenceDescriptor>::pointer_iterator
+         dependency_it = td_ptr->mutable_dependencies()->pointer_begin();
+       dependency_it != td_ptr->mutable_dependencies()->pointer_end();
+       ++dependency_it) {
+    auto& dependency = *dependency_it;
+    string location = dependency->location();
+    /*
+    if (dependency->size() == 0) {
+      dependency->set_size(data_layer_manager_->GetFileSize(location));
+    }
+    */
+    input_size += dependency->size();
+    /* Find block replicas that are closest to the machine */
+    unordered_map<uint64_t, DataLocation> closest_block_replicas;
+	 GetClosestReplicas(location, machine_res_id, &closest_block_replicas);
+    uint64_t file_size = 0;
+    for (auto& it : closest_block_replicas) {
+      DataLocation location = it.second;
+      if (machine_res_id == location.machine_res_id_) {
+        *data_on_machine = *data_on_machine + location.size_bytes_;
+      }
+      if (rack_ec == location.rack_id_){
+        *data_on_rack = *data_on_rack + location.size_bytes_;
+      }
+      file_size += location.size_bytes_;
+    }
+    //LOG(INFO)<<"dependency->size(): "<<dependency->size()<<", file_size: "<<file_size;
+    CHECK_EQ(dependency->size(), file_size);
+  }
+  return input_size;
+}
+
+
+uint64_t SimulatedDataLayerManager::GetEstimatedTransferTimeUS(
+    TaskDescriptor* td_ptr,
+    ResourceID_t machine_res_id) {
+ //LOG(INFO) << "SimulatedDataLayerManager::GetTransferTimeUS";
+ uint64_t data_on_rack = 0;
+ uint64_t data_on_machine = 0;
+ uint64_t input_size =
+ ComputeDataStatsForMachine(td_ptr, machine_res_id, &data_on_rack,
+                              &data_on_machine);
+ CHECK_GE(input_size, data_on_rack);
+
+ uint64_t remote_data = input_size - data_on_rack;
+ uint64_t rack_data = data_on_rack - data_on_machine;
+ uint64_t remote_transfer_time =
+               (FLAGS_simulated_remote_transfer_time
+             * remote_data)/BYTES_TO_MBITS;
+ uint64_t rack_transfer_time =
+               (FLAGS_simulated_rack_transfer_time
+             * rack_data)/BYTES_TO_MBITS;
+ return remote_transfer_time + rack_transfer_time;
+}
+
 
 } // namespace sim
 } // namespace firmament

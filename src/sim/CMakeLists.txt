@@ -29,6 +29,7 @@ set(SIM_SRC
 
 set(SIM_INTERFERENCE_SRC
   sim/interference/no_task_interference.cc
+  sim/interference/no_interference_transfer_including.cc
   sim/interference/quincy_task_interference.cc
 )
 

@@ -32,10 +32,10 @@ DEFINE_uint64(synthetic_machine_failure_duration, 60,
               "Duration (in seconds) of a machine failure");
 DEFINE_uint64(synthetic_num_jobs, 1000,
               "Total number of synthetic jobs to generate");
-DEFINE_uint64(synthetic_num_machines, 500, "Number of machines to simulate");
-DEFINE_uint64(synthetic_job_interarrival_time, 2000,
+DEFINE_uint64(synthetic_num_machines, 200, "Number of machines to simulate");
+DEFINE_uint64(synthetic_job_interarrival_time, 10000,
               "Number of microseconds in between job arrivals");
-DEFINE_uint64(synthetic_tasks_per_job, 100,
+DEFINE_uint64(synthetic_tasks_per_job, 200,
               "Number of tasks per job");
 DEFINE_uint64(synthetic_task_duration_mean, firmament::SECONDS_TO_MICROSECONDS/10,
               "Duration (in microseconds) of a task");

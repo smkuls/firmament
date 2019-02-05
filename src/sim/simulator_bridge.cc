@@ -37,6 +37,7 @@
 #include "scheduling/fulcrum_c/fulcrum_c_scheduler.h"
 #include "sim/dfs/simulated_data_layer_manager.h"
 #include "sim/interference/no_task_interference.h"
+#include "sim/interference/no_interference_transfer_including.h"
 #include "sim/interference/quincy_task_interference.h"
 #include "sim/knowledge_base_simulator.h"
 #include "sim/trace_loader.h"
@@ -63,12 +64,15 @@ SimulatorBridge::SimulatorBridge(EventManager* event_manager,
     resource_map_(new ResourceMap_t), task_map_(new TaskMap_t),
     num_duplicate_task_ids_(0) {
   trace_generator_ = new TraceGenerator(simulated_time_);
+  data_layer_manager_ = new SimulatedDataLayerManager(trace_generator_);
+  /*
   if (FLAGS_flow_scheduling_cost_model == COST_MODEL_QUINCY) {
     // We're running Quincy => simulate the DFS.
     data_layer_manager_ = new SimulatedDataLayerManager(trace_generator_);
   } else {
     data_layer_manager_ = NULL;
   }
+  */
   knowledge_base_ = shared_ptr<KnowledgeBaseSimulator>(
       new KnowledgeBaseSimulator(data_layer_manager_));
   ResourceID_t root_uuid = GenerateRootResourceID("XXXsimulatorXXX");
@@ -76,7 +80,6 @@ SimulatorBridge::SimulatorBridge(EventManager* event_manager,
   rd_ptr->set_uuid(to_string(root_uuid));
   rd_ptr->set_type(ResourceDescriptor::RESOURCE_COORDINATOR);
 
-  LOG(INFO) << "Adding Resource, current #resources: "<< resource_map_->size();
   CHECK(InsertIfNotPresent(
       resource_map_.get(), root_uuid,
       new ResourceStatus(rd_ptr, &rtn_root_,
@@ -128,9 +131,11 @@ SimulatorBridge::SimulatorBridge(EventManager* event_manager,
                  << "have interference model";
     }
   } else {
-    task_interference_model_ = new NoTaskInterference(&task_runtime_);
+    //task_interference_model_ = new NoTaskInterference(&task_runtime_);
+    // Considers the transfer costs for the input data
+    task_interference_model_ = new NoInterferenceTransfer(&task_runtime_, 
+                                    resource_map_, data_layer_manager_);
   }
-  LOG(INFO) << "Added Resource, current #resources: "<< resource_map_->size();
 }
 
 SimulatorBridge::~SimulatorBridge() {
@@ -194,6 +199,19 @@ ResourceDescriptor* SimulatorBridge::AddMachine(
   CHECK(InsertIfNotPresent(&trace_machine_id_to_rtnd_, machine_id,
                            new_machine));
   scheduler_->RegisterResource(new_machine, false, true);
+  // XXX(vipul): HACK! flow scheduler calls this function, hence avoid 
+  // duplicate call here
+  if (FLAGS_scheduler != "flow") {
+      trace_generator_->AddMachine(*rd_ptr);
+  }
+  if (data_layer_manager_) {
+        ResourceID_t machine_res_id = MachineResIDForResource(
+                           resource_map_,
+                           ResourceIDFromString(rd_ptr->uuid()));
+        //LOG(INFO) << "data_layer_manager_::AddMachine " << machine_res_id;
+        data_layer_manager_->AddMachine(hostname, machine_res_id);
+        //LOG(INFO) << "Finsihed data_layer_manager_::AddMachine";
+  }
   return rd_ptr;
 }
 
@@ -235,11 +253,14 @@ bool SimulatorBridge::AddTask(const TraceTaskIdentifier& task_identifier,
     // the task. The subsequent SUBMIT events can be ignored.
     VLOG(1) << "Task already submitted: " << task_identifier.job_id << ","
             << task_identifier.task_index;
+    LOG(INFO) << "Task already submitted: " << task_identifier.job_id << ","
+            << task_identifier.task_index;
     return false;
   }
   // We never remove the task identifiers from the submitted_tasks_ set. We are
   // using the set to handle the case in which a task finishes before one of
   // its following SUBMIT events.
+
   submitted_tasks_.insert(task_identifier);
   JobDescriptor* jd_ptr = FindPtrOrNull(trace_job_id_to_jd_,
                                         task_identifier.job_id);
@@ -346,6 +367,7 @@ TaskDescriptor* SimulatorBridge::AddTaskToJob(
   // is unique.
   new_task->set_binary(lexical_cast<string>(task_identifier.job_id));
   // Add a dependency for the task.
+  
   if (data_layer_manager_) {
     ReferenceDescriptor* dependency =  new_task->add_dependencies();
     uint64_t* runtime_ptr = FindOrNull(task_runtime_, task_id);
@@ -397,6 +419,7 @@ void SimulatorBridge::ProcessSimulatorEvents(uint64_t events_up_to_time) {
       break;
     }
     pair<uint64_t, EventDescriptor> event = event_manager_->GetNextEvent();
+    //LOG(INFO)<<"SimulatorBridge::ProcessSimulatorEvents eventtype: "<<event.second.type();
     if (event.second.type() == EventDescriptor::ADD_MACHINE) {
       AddMachine(event.second.machine_id());
     } else if (event.second.type() == EventDescriptor::REMOVE_MACHINE) {
@@ -419,6 +442,7 @@ void SimulatorBridge::ProcessSimulatorEvents(uint64_t events_up_to_time) {
       LOG(FATAL) << "Unexpected event type " << event.second.type() << " @ "
                  << event.first;
     }
+    //LOG(INFO)<<"SimulatorBridge::ProcessSimulatorEvents Finished processing event";
   }
 }
 
