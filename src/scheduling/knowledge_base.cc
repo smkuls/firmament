@@ -72,6 +72,13 @@ KnowledgeBase::KnowledgeBase(DataLayerManagerInterface* data_layer_manager)
   }
 }
 
+KnowledgeBase::KnowledgeBase(DataLayerManagerInterface* data_layer_manager,
+                  multimap<ResourceID_t, ResourceDescriptor*>* machine_res_id_pus)
+  : KnowledgeBase(data_layer_manager){
+  machine_res_id_pus_ = machine_res_id_pus;
+}
+
+
 KnowledgeBase::~KnowledgeBase() {
   if (serial_machine_samples_.is_open()) {
     delete coded_machine_output_;

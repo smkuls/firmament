@@ -74,7 +74,7 @@ SimulatorBridge::SimulatorBridge(EventManager* event_manager,
   }
   */
   knowledge_base_ = shared_ptr<KnowledgeBaseSimulator>(
-      new KnowledgeBaseSimulator(data_layer_manager_));
+      new KnowledgeBaseSimulator(data_layer_manager_, &machine_res_id_pus_));
   ResourceID_t root_uuid = GenerateRootResourceID("XXXsimulatorXXX");
   ResourceDescriptor* rd_ptr = rtn_root_.mutable_resource_desc();
   rd_ptr->set_uuid(to_string(root_uuid));
@@ -204,13 +204,13 @@ ResourceDescriptor* SimulatorBridge::AddMachine(
   if (FLAGS_scheduler != "flow") {
       trace_generator_->AddMachine(*rd_ptr);
   }
-  if (data_layer_manager_) {
-        ResourceID_t machine_res_id = MachineResIDForResource(
+  if (FLAGS_flow_scheduling_cost_model != COST_MODEL_QUINCY && data_layer_manager_) {
+      ResourceID_t machine_res_id = MachineResIDForResource(
                            resource_map_,
                            ResourceIDFromString(rd_ptr->uuid()));
-        //LOG(INFO) << "data_layer_manager_::AddMachine " << machine_res_id;
-        data_layer_manager_->AddMachine(hostname, machine_res_id);
-        //LOG(INFO) << "Finsihed data_layer_manager_::AddMachine";
+      //LOG(INFO) << "data_layer_manager_::AddMachine " << hostname <<" : "<<machine_res_id;
+      data_layer_manager_->AddMachine(hostname, machine_res_id);
+      //LOG(INFO) << "Finsihed data_layer_manager_::AddMachine";
   }
   return rd_ptr;
 }
@@ -392,6 +392,7 @@ TaskDescriptor* SimulatorBridge::AddTaskToJob(
     dependency->set_type(ReferenceDescriptor::CONCRETE);
     dependency->set_size(input_size);
     dependency->set_location(to_string(task_id));
+    //LOG(INFO) << "file_size: "<<data_layer_manager_->GetFileSize(to_string(task_id))<<", input_size: "<<input_size;
   }
   return new_task;
 }

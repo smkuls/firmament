@@ -48,6 +48,8 @@ class KnowledgeBase {
  public:
   KnowledgeBase();
   KnowledgeBase(DataLayerManagerInterface* data_layer_manager);
+  KnowledgeBase(DataLayerManagerInterface* data_layer_manager,
+               multimap<ResourceID_t, ResourceDescriptor*>* machine_res_id_pus);
   virtual ~KnowledgeBase();
   void AddMachineSample(const ResourceStats& sample);
   void AddTaskStatsSample(const TaskStats& stats_sample);
@@ -73,6 +75,10 @@ class KnowledgeBase {
     CHECK_NOTNULL(data_layer_manager_);
     return data_layer_manager_;
   }
+  inline multimap<ResourceID_t, ResourceDescriptor*>* mutable_machine_res_id_pus() {
+    CHECK_NOTNULL(machine_res_id_pus_);
+    return machine_res_id_pus_;
+  }
 
  protected:
   unordered_map<ResourceID_t, deque<ResourceStats>,
@@ -91,6 +97,8 @@ class KnowledgeBase {
   ::google::protobuf::io::ZeroCopyOutputStream* raw_task_output_;
   ::google::protobuf::io::CodedOutputStream* coded_task_output_;
   DataLayerManagerInterface* data_layer_manager_;
+  multimap<ResourceID_t, ResourceDescriptor*>* machine_res_id_pus_;
+
 };
 
 }  // namespace firmament

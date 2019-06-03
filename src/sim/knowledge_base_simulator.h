@@ -33,6 +33,8 @@ class KnowledgeBaseSimulator : public KnowledgeBase {
  public:
   KnowledgeBaseSimulator();
   KnowledgeBaseSimulator(DataLayerManagerInterface* data_layer_manager);
+  KnowledgeBaseSimulator(DataLayerManagerInterface* data_layer_manager,
+         multimap<ResourceID_t, ResourceDescriptor*>* machine_res_id_pus);
 
   void AddMachineSample(
       uint64_t current_simulation_time,

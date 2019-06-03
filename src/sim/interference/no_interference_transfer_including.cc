@@ -58,7 +58,7 @@ void NoInterferenceTransfer::OnTaskEviction(
     TaskDescriptor* td_ptr,
     ResourceID_t res_id,
     vector<TaskEndRuntimes>* tasks_end_time) {
-  //LOG(INFO) << "NoInterferenceTransfer::OnTaskEviction";
+  LOG(INFO) << "NoInterferenceTransfer::OnTaskEviction";
   TaskID_t task_id = td_ptr->uid();
   TaskEndRuntimes task_end_runtimes(task_id);
   task_end_runtimes.set_previous_end_time(td_ptr->finish_time());

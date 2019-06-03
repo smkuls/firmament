@@ -43,10 +43,10 @@ DEFINE_double(quincy_preferred_machine_data_fraction, 0.1,
 DEFINE_double(quincy_preferred_rack_data_fraction, 0.1,
               "Threshold of proportion of data stored on rack for it to be on "
               "preferred list.");
-DEFINE_int64(quincy_tor_transfer_cost, 1,
+DEFINE_int64(quincy_tor_transfer_cost, 100,
              "Cost per unit of data transferred in core switch.");
 // Cost was 2 for most experiments, 20 for constrained network experiments
-DEFINE_int64(quincy_core_transfer_cost, 2,
+DEFINE_int64(quincy_core_transfer_cost, 200,
              "Cost per unit of data transferred in core switch.");
 DEFINE_bool(quincy_update_costs_upon_machine_change, true,
             "True if the costs should be updated if a machine is added or "
@@ -54,7 +54,7 @@ DEFINE_bool(quincy_update_costs_upon_machine_change, true,
 DEFINE_int64(quincy_positive_cost_offset, 2592000, "Value to offset costs so "
              "that they don't go negative. This value should be bigger than "
              "the runtime (in sec) of the longest task");
-DEFINE_bool(quincy_no_scheduling_delay, false, "Offset cost to unscheduled "
+DEFINE_bool(quincy_no_scheduling_delay, true, "Offset cost to unscheduled "
             "aggregator so that tasks get scheduled as soon as possible");
 
 DECLARE_uint64(max_tasks_per_pu);
@@ -68,13 +68,15 @@ QuincyCostModel::QuincyCostModel(
     shared_ptr<TaskMap_t> task_map,
     shared_ptr<KnowledgeBase> knowledge_base,
     TraceGenerator* trace_generator,
-    TimeInterface* time_manager)
+    TimeInterface* time_manager,
+    FlowScheduler* flow_scheduler)
   : resource_map_(resource_map),
     job_map_(job_map),
     task_map_(task_map),
     knowledge_base_(knowledge_base),
     trace_generator_(trace_generator),
-    time_manager_(time_manager) {
+    time_manager_(time_manager),
+    flow_scheduler_(flow_scheduler){
   cluster_aggregator_ec_ = HashString("CLUSTER_AGG");
   data_layer_manager_ = knowledge_base_->mutable_data_layer_manager();
 }
@@ -110,6 +112,13 @@ ArcDescriptor QuincyCostModel::TaskToUnscheduledAgg(TaskID_t task_id) {
       static_cast<int64_t>(time_manager_->GetCurrentTimestamp()) -
       static_cast<int64_t>(td.submit_time());
   }
+  /*
+  LOG(INFO) << "QuincyCostModel::TaskToUnscheduledAgg "
+            << no_delay_offset<< " : "
+            << FLAGS_quincy_positive_cost_offset << " : "
+            << FLAGS_quincy_wait_time_factor << " : "
+            << total_unscheduled_time;
+  */
   return ArcDescriptor(
       static_cast<Cost_t>(total_unscheduled_time *
                           FLAGS_quincy_wait_time_factor /
@@ -412,54 +421,6 @@ FlowGraphNode* QuincyCostModel::UpdateStats(FlowGraphNode* accumulator,
   return accumulator;
 }
 
-uint64_t QuincyCostModel::ComputeClusterDataStatistics(
-    TaskDescriptor* td_ptr,
-    unordered_map<ResourceID_t, uint64_t,
-      boost::hash<ResourceID_t>>* data_on_machines,
-    unordered_map<EquivClass_t, uint64_t>* data_on_racks) {
-  CHECK_NOTNULL(data_on_machines);
-  CHECK_NOTNULL(data_on_racks);
-  unordered_map<ResourceID_t, unordered_map<uint64_t, uint64_t>,
-                boost::hash<ResourceID_t>> blocks_on_machines;
-  unordered_map<EquivClass_t,
-                unordered_map<uint64_t, uint64_t>> blocks_on_racks;
-  uint64_t input_size = 0;
-  for (RepeatedPtrField<ReferenceDescriptor>::pointer_iterator
-         dependency_it = td_ptr->mutable_dependencies()->pointer_begin();
-       dependency_it != td_ptr->mutable_dependencies()->pointer_end();
-       ++dependency_it) {
-    auto& dependency = *dependency_it;
-    string location = dependency->location();
-    if (dependency->size() == 0) {
-      dependency->set_size(data_layer_manager_->GetFileSize(location));
-    }
-    input_size += dependency->size();
-    list<DataLocation> locations;
-    data_layer_manager_->GetFileLocations(location, &locations);
-    for (auto& location : locations) {
-      UpdateMachineBlocks(location, &blocks_on_machines);
-      UpdateRackBlocks(location, &blocks_on_racks);
-    }
-  }
-  for (auto& machine_blocks : blocks_on_machines) {
-    uint64_t data_on_machine = 0;
-    for (auto& block_size : machine_blocks.second) {
-      data_on_machine += block_size.second;
-    }
-    CHECK_GE(input_size, data_on_machine);
-    CHECK(InsertIfNotPresent(data_on_machines, machine_blocks.first,
-                             data_on_machine));
-  }
-  for (auto& rack_blocks : blocks_on_racks) {
-    uint64_t data_on_rack = 0;
-    for (auto& block_size : rack_blocks.second) {
-      data_on_rack += block_size.second;
-    }
-    CHECK_GE(input_size, data_on_rack);
-    CHECK(InsertIfNotPresent(data_on_racks, rack_blocks.first, data_on_rack));
-  }
-  return input_size;
-}
 
 uint64_t QuincyCostModel::ComputeDataStatsForMachine(
     TaskDescriptor* td_ptr, ResourceID_t machine_res_id,
@@ -534,7 +495,8 @@ void QuincyCostModel::ConstructTaskPreferredSet(TaskID_t task_id) {
                 boost::hash<ResourceID_t>> data_on_machines;
   // Compute the amount of data the task has on every machine and rack.
   uint64_t input_size =
-    ComputeClusterDataStatistics(td_ptr, &data_on_machines, &data_on_ecs);
+    flow_scheduler_->
+    ComputeClusterDataStatistics(*td_ptr, &data_on_machines, &data_on_ecs);
 
   auto preferred_ecs = FindOrNull(task_preferred_ecs_, task_id);
   CHECK_NOTNULL(preferred_ecs);
@@ -591,41 +553,6 @@ void QuincyCostModel::ConstructTaskPreferredSet(TaskID_t task_id) {
                                     TaskToUnscheduledAgg(td_ptr->uid()).cost_,
                                     preferred_machines->size(),
                                     preferred_ecs->size() - 1);
-  }
-}
-
-void QuincyCostModel::UpdateMachineBlocks(
-    const DataLocation& location,
-    unordered_map<ResourceID_t, unordered_map<uint64_t, uint64_t>,
-      boost::hash<ResourceID_t>>* data_on_machines) {
-  CHECK_NOTNULL(data_on_machines);
-  auto machine_blocks =
-    FindOrNull(*data_on_machines, location.machine_res_id_);
-  if (machine_blocks) {
-    InsertOrUpdate(machine_blocks, location.block_id_, location.size_bytes_);
-  } else {
-    unordered_map<uint64_t, uint64_t> new_machine_blocks;
-    InsertIfNotPresent(&new_machine_blocks, location.block_id_,
-                       location.size_bytes_);
-    InsertIfNotPresent(data_on_machines, location.machine_res_id_,
-                       new_machine_blocks);
-  }
-}
-
-void QuincyCostModel::UpdateRackBlocks(
-    const DataLocation& location,
-    unordered_map<EquivClass_t,
-      unordered_map<uint64_t, uint64_t>>* data_on_racks) {
-  CHECK_NOTNULL(data_on_racks);
-  auto rack_blocks =
-    FindOrNull(*data_on_racks, location.rack_id_);
-  if (rack_blocks) {
-    InsertOrUpdate(rack_blocks, location.block_id_, location.size_bytes_);
-  } else {
-    unordered_map<uint64_t, uint64_t> new_rack_blocks;
-    InsertIfNotPresent(&new_rack_blocks, location.block_id_,
-                       location.size_bytes_);
-    InsertIfNotPresent(data_on_racks, location.rack_id_, new_rack_blocks);
   }
 }
 

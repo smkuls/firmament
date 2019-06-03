@@ -88,11 +88,14 @@ class FulcrumScheduler : public EventDrivenScheduler {
   FRIEND_TEST(FulcrumSchedulerTest, ObjectIDToReferenceDescLookup);
   FRIEND_TEST(FulcrumSchedulerTest, ProducingTaskLookup);
 
-  bool FindResourceForTask(const TaskDescriptor& task_desc,
+  bool FindResourceForTask(TaskDescriptor& task_desc,
                            ResourceID_t* best_resource);
   bool FindRandomResourceForTask(const TaskDescriptor& task_desc,
                                  ResourceID_t* best_resource);
-
+  DataLayerManagerInterface* data_layer_manager_; 
+  // Multimap storing the mapping between machine resource ids and their PU
+  // resource descriptors.
+  multimap<ResourceID_t, ResourceDescriptor*>* machine_res_id_pus_;
   uint32_t rand_seed_;
 };
 

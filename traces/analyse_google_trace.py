@@ -49,6 +49,12 @@ def get_tasks_stats(task_events_file):
       if(eventtype == 0):
          print eventtype, EventType.SUBMIT
       if(eventtype == EventType.SUBMIT):
+         if((job_id, task_id) in tasks):
+            t = tasks[(job_id, task_id)]
+            #print t
+            #print job_id, task_id, timestamp, 0, 0
+            if t.jobid == job_id and t.taskid == task_id and t.t_submit==timestamp:
+               continue
          assert((job_id, task_id) not in tasks)
          tasks[(job_id, task_id)] = TaskStats(jobid=job_id, taskid=task_id, t_submit=timestamp, t_schedule=0, t_finish=0)
 

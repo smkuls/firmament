@@ -57,6 +57,12 @@ class DataLayerManagerInterface {
    * @return true if the machine was the last one in its rack
    */
   virtual bool RemoveMachine(const string& hostname) = 0;
+
+  // Compute the estimated data transfer time for a task on a machine
+  uint64_t GetEstimatedTransferTimeUS(
+                       TaskDescriptor* td_ptr,
+                       ResourceID_t machine_res_id) {return 1ULL;}
+
 };
 
 } // namespace firmament

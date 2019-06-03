@@ -59,33 +59,20 @@ FulcrumScheduler::FulcrumScheduler(
                            object_store, task_map, knowledge_base, topo_mgr,
                            m_adapter, event_notifier, coordinator_res_id,
                            coordinator_uri, time_manager, trace_generator) {
+  data_layer_manager_ = knowledge_base_->mutable_data_layer_manager();
+  machine_res_id_pus_ = knowledge_base_->mutable_machine_res_id_pus();
   VLOG(1) << "FulcrumScheduler initiated.";
 }
 
 FulcrumScheduler::~FulcrumScheduler() {
 }
 
-bool FulcrumScheduler::FindResourceForTask(const TaskDescriptor& task_desc,
+bool FulcrumScheduler::FindResourceForTask(TaskDescriptor& task_desc,
                                           ResourceID_t* best_resource) {
   // TODO(malte): This is an extremely simple-minded approach to resource
   // selection (i.e. the essence of scheduling). We will simply traverse the
   // resource map in some order, and grab the first resource available.
   VLOG(2) << "Trying to place task " << task_desc.uid() << "...";
-
-  int numpus = 0;
-  for (ResourceMap_t::iterator res_iter = resource_map_->begin();
-       res_iter != resource_map_->end();
-       ++res_iter) {
-       if (res_iter->second->descriptor().type() ==
-           ResourceDescriptor::RESOURCE_PU) {
-         numpus++;
-       }
-  }
-
-  if(task_desc.uid()%10000 == 0){
-      LOG(INFO) << "FindResourceForTask: #resources: " << resource_map_->size()
-               << ", #PUs: "<<numpus;
-  }
  
   ResourceVector rvec = task_desc.resource_request();
   /*
@@ -98,6 +85,65 @@ bool FulcrumScheduler::FindResourceForTask(const TaskDescriptor& task_desc,
              << ", net_tx_bw: " << rvec.net_tx_bw()
              << ", net_rx_bw: " << rvec.net_rx_bw();
   */
+
+  unordered_map<EquivClass_t, uint64_t> data_on_ecs;
+  unordered_map<ResourceID_t, uint64_t,
+                boost::hash<ResourceID_t>> data_on_machines;
+  // Compute the amount of data the task has on every machine and rack.
+  uint64_t input_size = ComputeClusterDataStatistics(
+										task_desc, &data_on_machines,
+									   &data_on_ecs);
+
+  //LOG(INFO) << "num_machines: " << data_on_machines.size();
+  vector<ResourceID_t> data_machines;
+  for (auto kv: data_on_machines){
+  		data_machines.push_back(kv.first);
+  }
+  sort(data_machines.begin( ), data_machines.end( ),
+  			[&data_on_machines]( const ResourceID_t& lhs, const ResourceID_t& rhs )
+			  {  //Sort machines in the descending order of data
+				  return data_on_machines[lhs] > data_on_machines[rhs];
+			  });
+
+
+  // Find the first idle resource in the resource map
+  for (auto res_id = data_machines.begin();
+       res_id != data_machines.end();
+       ++res_id) {
+    ResourceStatus* res_status =  FindPtrOrNull(*resource_map_, *res_id);
+	 CHECK_NOTNULL(res_status);
+    CHECK_EQ(res_status->descriptor().type(),
+                  ResourceDescriptor::RESOURCE_MACHINE);
+	 // Get machine's PUs
+    ResourceID_t machine_res_id = MachineResIDForResource(resource_map_,
+                           ResourceIDFromString(res_status->descriptor().uuid()));
+	 pair<multimap<ResourceID_t, ResourceDescriptor*>::iterator,
+		 multimap<ResourceID_t, ResourceDescriptor*>::iterator> range_it =
+			 machine_res_id_pus_->equal_range(machine_res_id);
+	 for (; range_it.first != range_it.second; range_it.first++) {
+		 ResourceID_t pu_res_id =
+			ResourceIDFromString(range_it.first->second->uuid());
+		 ResourceStatus* pu_res_status = FindPtrOrNull(*resource_map_, pu_res_id);
+		 CHECK_EQ(pu_res_status->descriptor().type(),
+							ResourceDescriptor::RESOURCE_PU);
+		 VLOG(3) << "Considering resource " << pu_res_id
+					<< ", which is in state "
+					<< pu_res_status->descriptor().state();
+       /*
+		 LOG(INFO) << "Considering resource with data " << pu_res_id
+					<< ", which is in state "
+					<< pu_res_status->descriptor().state()
+					<<", of type "
+					<< pu_res_status->descriptor().type();
+       */
+		 if (pu_res_status->descriptor().state() ==
+			  ResourceDescriptor::RESOURCE_IDLE) {
+			*best_resource = pu_res_id;
+			//LOG(INFO)<< "Scheduling on machine with data. ";
+			return true;
+		 }
+  	}
+  }
 
   // Find the first idle resource in the resource map
   for (ResourceMap_t::iterator res_iter = resource_map_->begin();

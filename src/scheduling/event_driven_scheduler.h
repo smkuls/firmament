@@ -103,6 +103,23 @@ class EventDrivenScheduler : public SchedulerInterface {
     return *stream << "<EventDrivenScheduler>";
   }
 
+  uint64_t ComputeClusterDataStatistics(
+      TaskDescriptor& td_ptr,
+      unordered_map<ResourceID_t, uint64_t,
+        boost::hash<ResourceID_t>>* data_on_machines,
+      unordered_map<EquivClass_t, uint64_t>* data_on_racks);
+  void UpdateMachineBlocks(
+      const DataLocation& location,
+      unordered_map<ResourceID_t, unordered_map<uint64_t, uint64_t>,
+        boost::hash<ResourceID_t>>* data_on_machines);
+  void UpdateRackBlocks(
+      const DataLocation& location,
+      unordered_map<EquivClass_t,
+        unordered_map<uint64_t, uint64_t>>* data_on_racks);
+
+
+
+
  protected:
   FRIEND_TEST(SimpleSchedulerTest, FindRunnableTasksForJob);
   FRIEND_TEST(SimpleSchedulerTest, FindRunnableTasksForComplexJob);
@@ -185,6 +202,7 @@ class EventDrivenScheduler : public SchedulerInterface {
   shared_ptr<TopologyManager> topology_manager_;
   TimeInterface* time_manager_;
   TraceGenerator* trace_generator_;
+  DataLayerManagerInterface* data_layer_manager_;
 };
 
 }  // namespace scheduler

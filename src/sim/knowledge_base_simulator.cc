@@ -56,6 +56,12 @@ KnowledgeBaseSimulator::KnowledgeBaseSimulator(
       : KnowledgeBase(data_layer_manager) {
 }
 
+KnowledgeBaseSimulator::KnowledgeBaseSimulator(
+    DataLayerManagerInterface* data_layer_manager,
+    multimap<ResourceID_t, ResourceDescriptor*>* machine_res_id_pus)
+      : KnowledgeBase(data_layer_manager, machine_res_id_pus) {
+}
+
 void KnowledgeBaseSimulator::AddMachineSample(
     uint64_t current_simulation_time,
     ResourceDescriptor* rd_ptr,

@@ -37,11 +37,15 @@
 #include "misc/utils.h"
 #include "scheduling/common.h"
 #include "scheduling/flow/cost_model_interface.h"
+#include "scheduling/flow/flow_scheduler.h"
 #include "scheduling/knowledge_base.h"
 
 DECLARE_bool(preemption);
 
 namespace firmament {
+
+class firmament::scheduler::FlowScheduler;
+typedef firmament::scheduler::FlowScheduler FlowScheduler;
 
 class QuincyCostModel : public CostModelInterface {
  public:
@@ -50,7 +54,8 @@ class QuincyCostModel : public CostModelInterface {
                   shared_ptr<TaskMap_t> task_map,
                   shared_ptr<KnowledgeBase> knowledge_base,
                   TraceGenerator* trace_generator,
-                  TimeInterface* time_manager);
+                  TimeInterface* time_manager,
+                  FlowScheduler* flow_scheduler);
   ~QuincyCostModel();
 
   // Costs pertaining to leaving tasks unscheduled
@@ -84,11 +89,6 @@ class QuincyCostModel : public CostModelInterface {
   FlowGraphNode* UpdateStats(FlowGraphNode* accumulator, FlowGraphNode* other);
 
  private:
-  uint64_t ComputeClusterDataStatistics(
-      TaskDescriptor* td_ptr,
-      unordered_map<ResourceID_t, uint64_t,
-        boost::hash<ResourceID_t>>* data_on_machines,
-      unordered_map<EquivClass_t, uint64_t>* data_on_racks);
   /**
    * Compute the amount of data the task has on the machine given as argument.
    * @param td the descriptor of the task for which to compute statistics
@@ -121,14 +121,6 @@ class QuincyCostModel : public CostModelInterface {
                                           ResourceID_t res_id);
   void RemovePreferencesToMachine(ResourceID_t res_id);
   void RemovePreferencesToRack(EquivClass_t ec);
-  void UpdateMachineBlocks(
-      const DataLocation& location,
-      unordered_map<ResourceID_t, unordered_map<uint64_t, uint64_t>,
-        boost::hash<ResourceID_t>>* data_on_machines);
-  void UpdateRackBlocks(
-      const DataLocation& location,
-      unordered_map<EquivClass_t,
-        unordered_map<uint64_t, uint64_t>>* data_on_racks);
   /**
    * Updates a task's cached transfer costs that have been affected by a
    * change (e.g., machine addition or removal) in a rack.
@@ -205,6 +197,7 @@ class QuincyCostModel : public CostModelInterface {
   unordered_map<TaskID_t, pair<ResourceID_t, Cost_t>> task_running_arcs_;
   TraceGenerator* trace_generator_;
   TimeInterface* time_manager_;
+  FlowScheduler* flow_scheduler_;
   DataLayerManagerInterface* data_layer_manager_;
 };
 

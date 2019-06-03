@@ -99,8 +99,17 @@ void SimulatedDataLayerManager::GetFileLocations(
 }
 
 int64_t SimulatedDataLayerManager::GetFileSize(const string& file_path) {
-  // TODO(ionel): Implement!
-  return 0;
+  uint64_t file_size = 0;
+  list<DataLocation> locations;
+  GetFileLocations(file_path, &locations);
+  /* Count size of distinct blocks for the file */
+  unordered_set<uint64_t> distinct_blocks;
+  for (auto& location : locations) {
+     if(distinct_blocks.insert(location.block_id_).second){
+        file_size += location.size_bytes_;
+     }
+  }
+  return file_size;
 }
 
 bool SimulatedDataLayerManager::RemoveMachine(const string& hostname) {
@@ -126,6 +135,7 @@ uint64_t SimulatedDataLayerManager::AddFilesForTask(
     if (input_size % FLAGS_simulated_block_size != 0) {
       num_blocks++;
     }
+    //num_blocks = std::max(static_cast<uint64_t>(5), num_blocks);
     dfs_->AddBlocksForTask(td, num_blocks, max_machine_spread);
     return num_blocks * FLAGS_simulated_block_size;
   } else {

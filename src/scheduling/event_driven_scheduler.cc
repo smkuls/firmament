@@ -77,6 +77,7 @@ EventDrivenScheduler::EventDrivenScheduler(
       time_manager_(time_manager),
       trace_generator_(trace_generator) {
   VLOG(1) << "EventDrivenScheduler initiated.";
+  data_layer_manager_ = knowledge_base_->mutable_data_layer_manager();
 }
 
 EventDrivenScheduler::~EventDrivenScheduler() {
@@ -879,6 +880,97 @@ bool EventDrivenScheduler::UnbindTaskFromResource(TaskDescriptor* td_ptr,
     return false;
   }
 }
+
+
+void EventDrivenScheduler::UpdateMachineBlocks(
+    const DataLocation& location,
+    unordered_map<ResourceID_t, unordered_map<uint64_t, uint64_t>,
+      boost::hash<ResourceID_t>>* data_on_machines) {
+  CHECK_NOTNULL(data_on_machines);
+  auto machine_blocks =
+    FindOrNull(*data_on_machines, location.machine_res_id_);
+  if (machine_blocks) {
+    InsertOrUpdate(machine_blocks, location.block_id_, location.size_bytes_);
+  } else {
+    unordered_map<uint64_t, uint64_t> new_machine_blocks;
+    InsertIfNotPresent(&new_machine_blocks, location.block_id_,
+                       location.size_bytes_);
+    InsertIfNotPresent(data_on_machines, location.machine_res_id_,
+                       new_machine_blocks);
+  }
+}
+
+
+
+void EventDrivenScheduler::UpdateRackBlocks(
+    const DataLocation& location,
+    unordered_map<EquivClass_t,
+      unordered_map<uint64_t, uint64_t>>* data_on_racks) {
+  CHECK_NOTNULL(data_on_racks);
+  auto rack_blocks =
+    FindOrNull(*data_on_racks, location.rack_id_);
+  if (rack_blocks) {
+    InsertOrUpdate(rack_blocks, location.block_id_, location.size_bytes_);
+  } else {
+    unordered_map<uint64_t, uint64_t> new_rack_blocks;
+    InsertIfNotPresent(&new_rack_blocks, location.block_id_,
+                       location.size_bytes_);
+    InsertIfNotPresent(data_on_racks, location.rack_id_, new_rack_blocks);
+  }
+}
+
+
+uint64_t EventDrivenScheduler::ComputeClusterDataStatistics(
+    TaskDescriptor& td_ptr,
+    unordered_map<ResourceID_t, uint64_t,
+      boost::hash<ResourceID_t>>* data_on_machines,
+    unordered_map<EquivClass_t, uint64_t>* data_on_racks) {
+  CHECK_NOTNULL(data_on_machines);
+  CHECK_NOTNULL(data_on_racks);
+  unordered_map<ResourceID_t, unordered_map<uint64_t, uint64_t>,
+                boost::hash<ResourceID_t>> blocks_on_machines;
+  unordered_map<EquivClass_t,
+                unordered_map<uint64_t, uint64_t>> blocks_on_racks;
+  uint64_t input_size = 0;
+  for (RepeatedPtrField<ReferenceDescriptor>::pointer_iterator
+         dependency_it = td_ptr.mutable_dependencies()->pointer_begin();
+       dependency_it != td_ptr.mutable_dependencies()->pointer_end();
+       ++dependency_it) {
+    auto& dependency = *dependency_it;
+    string location = dependency->location();
+    if (dependency->size() == 0) {
+      dependency->set_size(data_layer_manager_->GetFileSize(location));
+    }
+    input_size += dependency->size();
+    list<DataLocation> locations;
+    data_layer_manager_->GetFileLocations(location, &locations);
+    for (auto& location : locations) {
+      UpdateMachineBlocks(location, &blocks_on_machines);
+      UpdateRackBlocks(location, &blocks_on_racks);
+    }
+  }
+  for (auto& machine_blocks : blocks_on_machines) {
+    uint64_t data_on_machine = 0;
+    for (auto& block_size : machine_blocks.second) {
+      data_on_machine += block_size.second;
+    }
+    CHECK_GE(input_size, data_on_machine);
+    CHECK(InsertIfNotPresent(data_on_machines, machine_blocks.first,
+                             data_on_machine));
+  }
+  for (auto& rack_blocks : blocks_on_racks) {
+    uint64_t data_on_rack = 0;
+    for (auto& block_size : rack_blocks.second) {
+      data_on_rack += block_size.second;
+    }
+    CHECK_GE(input_size, data_on_rack);
+    CHECK(InsertIfNotPresent(data_on_racks, rack_blocks.first, data_on_rack));
+  }
+  return input_size;
+}
+
+
+
 
 }  // namespace scheduler
 }  // namespace firmament
